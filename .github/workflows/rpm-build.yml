@@ -1,24 +1,30 @@
 name: Fedora RPM Builder
 
-# This tells GitHub to run this script every time you push to the 'master' branch
 on:
   push:
     branches:
       - master
 
+# IMPORTANT NEW LINE: We must give GitHub permission to create a Release page
+permissions:
+  contents: write
+
 jobs:
   build-rpm:
-    # THE MAGIC KEYWORD: This stops the job immediately unless your commit message contains "[build]"
     if: contains(github.event.head_commit.message, '[build]')
-    
     runs-on: ubuntu-latest
 
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
+      # NEW STEP: Read the version from your .spec file so we can name the Release properly
+      - name: 🔍 Read Version Number
+        run: |
+          VERSION=$(grep '^Version:' daily-tasks.spec | awk '{print $2}')
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: ⚙️ Build RPM in Fedora Container
-        # We spin up an official Fedora docker container to guarantee a perfect build environment
         run: |
           docker run --rm -v ${{ github.workspace }}:${{ github.workspace }} -w ${{ github.workspace }} fedora:latest /bin/bash -c "
             echo 'Installing build tools...'
@@ -45,9 +51,11 @@ jobs:
             chmod 777 ./*.rpm
           "
 
-      - name: 📦 Upload RPM Artifact
-        uses: actions/upload-artifact@v4
+      # NEW STEP: Automatically publish to the "Releases" page!
+      - name: 🚀 Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: Daily-Tasks-RPM
-          path: ./*.rpm
-          retention-days: 14
+          tag_name: v${{ env.APP_VERSION }}
+          name: Daily-Tasks v${{ env.APP_VERSION }}
+          body: "Automated RPM release for Daily-Tasks. Download the `.rpm` file below to install on Fedora."
+          files: ./*.rpm

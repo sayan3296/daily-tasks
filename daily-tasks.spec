@@ -1,5 +1,5 @@
 Name:           daily-tasks
-Version:        1.1
+Version:        1.2
 Release:        1
 Summary:        A modern desktop task manager and reminder daemon
 
