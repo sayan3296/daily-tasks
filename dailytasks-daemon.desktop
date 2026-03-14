@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Daily-Tasks Daemon
+Exec=python3 /opt/daily-tasks/daemon.py
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true

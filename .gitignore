@@ -1,0 +1,10 @@
+# Ignore personal data
+tasks.json
+
+# Ignore Python caches
+__pycache__/
+*.pyc
+
+# Ignore compressed archives and build files
+*.tar.gz
+*.rpm

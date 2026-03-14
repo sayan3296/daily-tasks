@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Daily-Tasks
+Comment=Simple task tracker
+Exec=python3 /opt/daily-tasks/app.py
+Icon=/opt/daily-tasks/icon.png
+Terminal=false
+Categories=Utility;
