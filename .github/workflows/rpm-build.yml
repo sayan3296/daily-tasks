@@ -1,10 +1,10 @@
 name: Fedora RPM Builder
 
-# This tells GitHub to run this script every time you push to the 'main' branch
+# This tells GitHub to run this script every time you push to the 'master' branch
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-rpm:
