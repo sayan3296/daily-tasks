@@ -4,16 +4,19 @@ A modern, lightweight, native desktop task manager built for Fedora Linux.
 
 Daily-Tasks goes beyond a simple to-do list by offering a persistent background daemon that integrates directly with your system's native notifications, ensuring you never miss a deadline. It features a clean, responsive UI, smart color-coding, and an auto-sorting priority list.
 
-*(Screenshot Placeholder: Add an image of your app here!)*
+*(Screenshot Placeholder: Add an updated image of your app here showing the search bar and dark mode!)*
 
 ## ✨ Features
 
 * **Native Desktop Experience:** Built with a modern `clam` theme that blends perfectly with Fedora/GNOME.
-* **Smart Sorting & Color-Coding:** Overdue tasks are automatically swept to the top in **Bold Red**, tasks due today are highlighted in **Bold Blue**, and upcoming tasks remain neatly ordered below.
+* **🌙 Dark Mode Support:** Includes a toggle for Dark/Light mode, saving your preference automatically for the next launch.
+* **🔍 Live Search Filtering:** Instantly filter your task list by description or date as you type.
+* **📋 Quick Copy:** Right-click any task in your list to instantly copy it to your system clipboard.
+* **Smart Sorting & Color-Coding:** Overdue tasks are automatically swept to the top in **Bold Red**, tasks due today are highlighted in **Bold Blue**, and upcoming tasks remain neatly ordered below. Colors dynamically adjust to be easy on the eyes in Dark Mode.
 * **Persistent Daemon Integration:** A lightweight background process auto-starts with your computer to monitor deadlines and send system-level desktop notifications.
 * **Frictionless Editing:** Double-click any task to quickly open a custom pop-up window and adjust its due date.
 * **Foolproof Date Entry:** Native, dynamic dropdown menus prevent formatting errors and automatically calculate the day of the week (e.g., "Monday").
-* **Safe Storage:** All data is safely stored locally in a simple `~/Daily-Tasks/tasks.json` file.
+* **Safe Storage:** All data is safely stored locally in a simple `~/Daily-Tasks/` directory.
 
 ---
 
@@ -22,7 +25,7 @@ Daily-Tasks goes beyond a simple to-do list by offering a persistent background 
 You do **not** need to compile any code to use Daily-Tasks! 
 
 ### 1. Download
-Go to the [Releases page](../../releases) on the right side of this repository and download the latest `.rpm` file (e.g., `daily-tasks-1.0-1.noarch.rpm`).
+Go to the [Releases page](../../releases) on the right side of this repository and download the latest `.rpm` file (e.g., `daily-tasks-1.x-1.noarch.rpm`).
 
 ### 2. Install
 Open your terminal, navigate to your downloads folder, and install the package using `dnf`. This will automatically install any required dependencies (like Python 3 and Tkinter):
@@ -35,6 +38,9 @@ sudo dnf install ./daily-tasks-1.*.noarch.rpm
 * **Launch:** Open your system's application menu and search for "Daily-Tasks".
 * **Add a Task:** Type your task, select the date, and press `Enter` (or click "Add Task").
 * **Edit a Task:** Double-click any task in the list to change its due date.
+* **Copy a Task:** Right-click a task to copy its text to your clipboard.
+* **Search:** Use the search bar to instantly filter tasks by text or date.
+* **Theme:** Click the Dark Mode / Light Mode button at the bottom right to switch themes.
 * **Background Reminders:** The app installs a daemon that will automatically start every time you log in. You don't need to keep the main window open to receive notifications!
 
 ---
@@ -82,6 +88,7 @@ If the commit message lacks `[build]`, GitHub Actions will safely ignore the pus
 * `app.py`: The main GUI application.
 * `daemon.py`: The background notification tracker.
 * `icon.png`: The application icon.
+* `tasks.json` & `config.json`: Local storage for user data and theme preferences (generated at runtime).
 * `dailytasks.desktop`: System-wide application menu shortcut.
 * `dailytasks-daemon.desktop`: System-wide autostart configuration.
 * `daily-tasks.spec`: The RPM build recipe.
