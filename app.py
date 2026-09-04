@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import datetime
 
-from storage import load_tasks, save_tasks, load_config, save_config, weekday, now_iso
+from storage import load_tasks, load_config, save_config, weekday, now_iso, mutate
 
 # APP_DIR locates bundled assets (the icon) next to this script.
 # All data persistence lives in storage.py.
@@ -228,7 +228,7 @@ class TaskApp:
             return
             
         task_id = str(uuid.uuid4())
-        self.tasks[task_id] = {
+        new_task = {
             "text": text,
             "date": due_date,
             "created_date": created_date,
@@ -238,7 +238,9 @@ class TaskApp:
             "snoozed_until": None,
             "updated_at": now_iso()
         }
-        save_tasks(self.tasks)
+        def _add(tasks):
+            tasks[task_id] = new_task
+        self.tasks = mutate(_add)
         
         self.task_entry.delete(0, tk.END)
         self.year_var.set(datetime.now().strftime("%Y"))
@@ -299,11 +301,13 @@ class TaskApp:
                 return
                 
             new_date = f"{pop_y_var.get()}-{pop_m_var.get()}-{pop_d_var.get()}"
-            self.tasks[task_id]['date'] = new_date
-            self.tasks[task_id]['updated_at'] = now_iso()
-            save_tasks(self.tasks)
+            def _edit(tasks):
+                if task_id in tasks:
+                    tasks[task_id]['date'] = new_date
+                    tasks[task_id]['updated_at'] = now_iso()
+            self.tasks = mutate(_edit)
             self.refresh_list()
-            edit_win.destroy() 
+            edit_win.destroy()
 
         ttk.Button(edit_win, text="Save New Date", command=save_new_date).pack(pady=20)
         
@@ -366,9 +370,11 @@ class TaskApp:
         selected = self.tree.selection()
         if not selected: return
         task_id = selected[0]
-        self.tasks[task_id]['completed'] = True
-        self.tasks[task_id]['updated_at'] = now_iso()
-        save_tasks(self.tasks)
+        def _complete(tasks):
+            if task_id in tasks:
+                tasks[task_id]['completed'] = True
+                tasks[task_id]['updated_at'] = now_iso()
+        self.tasks = mutate(_complete)
         self.refresh_list()
 
     def delete_task(self):
@@ -376,18 +382,21 @@ class TaskApp:
         if not selected: return
         task_id = selected[0]
         # Tombstone instead of hard delete so the removal can sync to other devices.
-        self.tasks[task_id]['deleted'] = True
-        self.tasks[task_id]['updated_at'] = now_iso()
-        save_tasks(self.tasks)
+        def _delete(tasks):
+            if task_id in tasks:
+                tasks[task_id]['deleted'] = True
+                tasks[task_id]['updated_at'] = now_iso()
+        self.tasks = mutate(_delete)
         self.refresh_list()
 
     def clear_done(self):
         if messagebox.askyesno("Confirm", "Permanently delete all completed tasks?"):
-            for info in self.tasks.values():
-                if info.get('completed', False) and not info.get('deleted', False):
-                    info['deleted'] = True
-                    info['updated_at'] = now_iso()
-            save_tasks(self.tasks)
+            def _clear(tasks):
+                for info in tasks.values():
+                    if info.get('completed', False) and not info.get('deleted', False):
+                        info['deleted'] = True
+                        info['updated_at'] = now_iso()
+            self.tasks = mutate(_clear)
             self.refresh_list()
 
     def reorder_tasks(self, index1, index2):
@@ -397,19 +406,22 @@ class TaskApp:
             return
 
         self.task_ids[index1], self.task_ids[index2] = self.task_ids[index2], self.task_ids[index1]
-        
-        new_tasks = {}
-        for tid in self.task_ids:
-            new_tasks[tid] = self.tasks[tid]
-            
-        for tid, info in self.tasks.items():
-            if tid not in new_tasks:
-                new_tasks[tid] = info
+        ordered_ids = list(self.task_ids)
 
-        self.tasks = new_tasks
-        save_tasks(self.tasks)
+        # Reorder against on-disk truth so concurrent daemon field updates are kept.
+        def _reorder(tasks):
+            new_tasks = {}
+            for tid in ordered_ids:
+                if tid in tasks:
+                    new_tasks[tid] = tasks[tid]
+            for tid, info in tasks.items():
+                if tid not in new_tasks:
+                    new_tasks[tid] = info
+            return new_tasks
+
+        self.tasks = mutate(_reorder)
         self.refresh_list()
-        
+
         self.tree.selection_set(self.task_ids[index2])
         self.tree.focus(self.task_ids[index2])
 

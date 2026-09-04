@@ -80,6 +80,29 @@ def save_tasks(tasks):
         _write_json(DATA_FILE, _purge_tombstones(tasks))
 
 
+def mutate(update_fn):
+    # Locked read-modify-write against the on-disk tasks. Loads the current
+    # truth, applies update_fn(tasks), purges old tombstones, and atomically
+    # saves. Because load and save happen under a single lock, a writer never
+    # clobbers fields another writer (e.g. the daemon's reminder metadata)
+    # changed concurrently. Returns the current tasks dict.
+    #
+    # update_fn contract:
+    #   return a dict  -> that dict is saved (replace)
+    #   return None    -> in-place mutations are saved
+    #   return False   -> nothing changed; skip the write entirely
+    with task_lock():
+        tasks = _read_json(DATA_FILE, {})
+        result = update_fn(tasks)
+        if result is False:
+            return tasks
+        if result is not None:
+            tasks = result
+        tasks = _purge_tombstones(tasks)
+        _write_json(DATA_FILE, tasks)
+        return tasks
+
+
 def load_config():
     with task_lock():
         cfg = _read_json(CONFIG_FILE, None)
