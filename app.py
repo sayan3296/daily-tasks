@@ -210,7 +210,7 @@ class TaskApp:
 
     # --- NEW: THEME ENGINE ---
     def toggle_theme(self):
-        self.config["dark_mode"] = not self.config["dark_mode"]
+        self.config["dark_mode"] = not self.config.get("dark_mode", False)
         save_config(self.config)
         self.apply_theme()
         self.refresh_list() # Refresh to update row colors
@@ -245,17 +245,18 @@ class TaskApp:
     # --- NEW: COPY ACTION ---
     def copy_task(self, event):
         item_id = self.tree.identify_row(event.y)
-        if item_id:
+        if item_id and item_id in self.tasks:
             # Highlight the row you clicked
             self.tree.selection_set(item_id)
-            task_text = self.tasks[item_id]['text']
-            
+            task_text = self.tasks[item_id].get('text', '')
+
             # Copy to Fedora clipboard
             self.root.clipboard_clear()
             self.root.clipboard_append(task_text)
-            
+
             # Show status message that fades away after 3 seconds
-            self.status_var.set(f"✓ Copied to clipboard: '{task_text[:40]}...'")
+            preview = task_text[:40] + ("..." if len(task_text) > 40 else "")
+            self.status_var.set(f"✓ Copied to clipboard: '{preview}'")
             self.root.after(3000, lambda: self.status_var.set(""))
 
     def update_weekday(self, event=None):
