@@ -66,6 +66,13 @@ def save_config(config):
     with task_lock():
         _atomic_write_json(CONFIG_FILE, config)
 
+def _weekday(date_str):
+    # Return the weekday name for a YYYY-MM-DD string, or "?" if unparseable.
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
+    except (ValueError, TypeError):
+        return "?"
+
 class TaskApp:
     def __init__(self, root):
         self.root = root
@@ -387,9 +394,14 @@ class TaskApp:
         
         for t_id, t_info in self.tasks.items():
             if not t_info.get('completed', False):
+                text = t_info.get('text', '')
+                date = t_info.get('date', '')
+                # Skip records without a usable due date instead of crashing.
+                if not date:
+                    continue
                 # Apply the search filter here!
-                if search_query in t_info['text'].lower() or search_query in t_info['date']:
-                    if t_info['date'] < today_str:
+                if search_query in text.lower() or search_query in date:
+                    if date < today_str:
                         overdue_tasks.append((t_id, t_info))
                     else:
                         normal_tasks.append((t_id, t_info))
@@ -397,17 +409,17 @@ class TaskApp:
         self.task_ids = []
         
         for t_id, t_info in overdue_tasks:
-            created = t_info.get('created_date', 'Legacy') 
+            created = t_info.get('created_date', 'Legacy')
             tag = "overdue"
-            day_name = datetime.strptime(t_info['date'], "%Y-%m-%d").strftime("%A")
-            self.tree.insert("", tk.END, iid=t_id, values=(created, t_info['date'], day_name, t_info['text']), tags=(tag,))
+            day_name = _weekday(t_info['date'])
+            self.tree.insert("", tk.END, iid=t_id, values=(created, t_info['date'], day_name, t_info.get('text', '')), tags=(tag,))
             self.task_ids.append(t_id)
-            
+
         for t_id, t_info in normal_tasks:
             created = t_info.get('created_date', 'Legacy')
             tag = "today" if t_info['date'] == today_str else "upcoming"
-            day_name = datetime.strptime(t_info['date'], "%Y-%m-%d").strftime("%A")
-            self.tree.insert("", tk.END, iid=t_id, values=(created, t_info['date'], day_name, t_info['text']), tags=(tag,))
+            day_name = _weekday(t_info['date'])
+            self.tree.insert("", tk.END, iid=t_id, values=(created, t_info['date'], day_name, t_info.get('text', '')), tags=(tag,))
             self.task_ids.append(t_id)
 
     def mark_complete(self):

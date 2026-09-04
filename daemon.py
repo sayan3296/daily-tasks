@@ -83,7 +83,10 @@ def run_daemon():
             updated = False
 
             for task_id, task in tasks.items():
-                if task['date'] == today_str and not task['completed'] and task['reminders_sent'] < 3:
+                # Skip malformed records instead of crashing the whole loop.
+                if not task.get('date'):
+                    continue
+                if task['date'] == today_str and not task.get('completed', False) and task.get('reminders_sent', 0) < 3:
 
                     # Check if the task is currently snoozed
                     snoozed_until = task.get('snoozed_until')
@@ -105,11 +108,11 @@ def run_daemon():
                         # Launch notification in a separate thread so it doesn't block other tasks
                         threading.Thread(
                             target=send_notification_and_handle_snooze,
-                            args=(task_id, "Daily-Tasks Reminder", task['text']),
+                            args=(task_id, "Daily-Tasks Reminder", task.get('text', '')),
                             daemon=True
                         ).start()
 
-                        task['reminders_sent'] += 1
+                        task['reminders_sent'] = task.get('reminders_sent', 0) + 1
                         task['last_reminded'] = now.isoformat()
                         task['snoozed_until'] = None # Reset snooze
                         updated = True
