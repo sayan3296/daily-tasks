@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import json
 import os
+import sys
 import uuid
 from datetime import datetime
 
@@ -13,25 +14,39 @@ if not os.path.exists(DATA_DIR):
 DATA_FILE = os.path.join(DATA_DIR, "tasks.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json") # New config file for Dark Mode
 
+def _atomic_write_json(path, data):
+    # Write to a temp file in the same directory, fsync, then os.replace.
+    # os.replace is atomic on POSIX, so a crash never leaves a truncated file.
+    tmp = f"{path}.tmp"
+    with open(tmp, 'w') as f:
+        json.dump(data, f)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
 def load_tasks():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r') as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Warning: could not read {DATA_FILE}: {e}", file=sys.stderr)
     return {}
 
 def save_tasks(tasks):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(tasks, f)
+    _atomic_write_json(DATA_FILE, tasks)
 
 def load_config():
     if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Warning: could not read {CONFIG_FILE}: {e}", file=sys.stderr)
     return {"dark_mode": False} # Default
 
 def save_config(config):
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f)
+    _atomic_write_json(CONFIG_FILE, config)
 
 class TaskApp:
     def __init__(self, root):

@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import time
 import subprocess
 import threading
@@ -11,15 +12,27 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 DATA_FILE = os.path.join(DATA_DIR, "tasks.json")
 
+def _atomic_write_json(path, data):
+    # Write to a temp file in the same directory, fsync, then os.replace.
+    # os.replace is atomic on POSIX, so a crash never leaves a truncated file.
+    tmp = f"{path}.tmp"
+    with open(tmp, 'w') as f:
+        json.dump(data, f)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
 def load_tasks():
     if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, 'r') as f:
-            return json.load(f)
+        try:
+            with open(DATA_FILE, 'r') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Warning: could not read {DATA_FILE}: {e}", file=sys.stderr)
     return {}
 
 def save_tasks(tasks):
-    with open(DATA_FILE, 'w') as f:
-        json.dump(tasks, f)
+    _atomic_write_json(DATA_FILE, tasks)
 
 def send_notification_and_handle_snooze(task_id, title, message):
     # -w waits for the notification to be closed/clicked
