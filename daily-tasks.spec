@@ -30,6 +30,7 @@ mkdir -p %{buildroot}/etc/xdg/autostart
 # Copy Python scripts and Icon
 cp app.py %{buildroot}/opt/daily-tasks/
 cp daemon.py %{buildroot}/opt/daily-tasks/
+cp storage.py %{buildroot}/opt/daily-tasks/
 cp icon.png %{buildroot}/opt/daily-tasks/
 
 # Copy Desktop files
@@ -39,6 +40,7 @@ cp %{SOURCE2} %{buildroot}/etc/xdg/autostart/
 %files
 /opt/daily-tasks/app.py
 /opt/daily-tasks/daemon.py
+/opt/daily-tasks/storage.py
 /opt/daily-tasks/icon.png
 /usr/share/applications/dailytasks.desktop
 /etc/xdg/autostart/dailytasks-daemon.desktop

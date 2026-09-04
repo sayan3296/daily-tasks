@@ -1,77 +1,14 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import json
 import os
-import sys
 import uuid
-import fcntl
-from contextlib import contextmanager
 from datetime import datetime
 
-# --- PATH SETUP (Compatible with RPM system-wide install) ---
+from storage import load_tasks, save_tasks, load_config, save_config, weekday
+
+# APP_DIR locates bundled assets (the icon) next to this script.
+# All data persistence lives in storage.py.
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.expanduser("~/Daily-Tasks")
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
-DATA_FILE = os.path.join(DATA_DIR, "tasks.json")
-CONFIG_FILE = os.path.join(DATA_DIR, "config.json") # New config file for Dark Mode
-LOCK_FILE = os.path.join(DATA_DIR, ".tasks.lock")
-
-@contextmanager
-def task_lock():
-    # Exclusive flock on a dedicated lock file. A fresh open() per call gives
-    # mutual exclusion across processes (app vs daemon) and threads, so the
-    # app and daemon never write tasks.json at the same time.
-    fd = open(LOCK_FILE, 'w')
-    try:
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        yield
-    finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        fd.close()
-
-def _atomic_write_json(path, data):
-    # Write to a temp file in the same directory, fsync, then os.replace.
-    # os.replace is atomic on POSIX, so a crash never leaves a truncated file.
-    tmp = f"{path}.tmp"
-    with open(tmp, 'w') as f:
-        json.dump(data, f)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-def load_tasks():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, 'r') as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            print(f"Warning: could not read {DATA_FILE}: {e}", file=sys.stderr)
-    return {}
-
-def save_tasks(tasks):
-    with task_lock():
-        _atomic_write_json(DATA_FILE, tasks)
-
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, 'r') as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            print(f"Warning: could not read {CONFIG_FILE}: {e}", file=sys.stderr)
-    return {"dark_mode": False} # Default
-
-def save_config(config):
-    with task_lock():
-        _atomic_write_json(CONFIG_FILE, config)
-
-def _weekday(date_str):
-    # Return the weekday name for a YYYY-MM-DD string, or "?" if unparseable.
-    try:
-        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
-    except (ValueError, TypeError):
-        return "?"
 
 class TaskApp:
     def __init__(self, root):
@@ -412,14 +349,14 @@ class TaskApp:
         for t_id, t_info in overdue_tasks:
             created = t_info.get('created_date', 'Legacy')
             tag = "overdue"
-            day_name = _weekday(t_info['date'])
+            day_name = weekday(t_info['date'])
             self.tree.insert("", tk.END, iid=t_id, values=(created, t_info['date'], day_name, t_info.get('text', '')), tags=(tag,))
             self.task_ids.append(t_id)
 
         for t_id, t_info in normal_tasks:
             created = t_info.get('created_date', 'Legacy')
             tag = "today" if t_info['date'] == today_str else "upcoming"
-            day_name = _weekday(t_info['date'])
+            day_name = weekday(t_info['date'])
             self.tree.insert("", tk.END, iid=t_id, values=(created, t_info['date'], day_name, t_info.get('text', '')), tags=(tag,))
             self.task_ids.append(t_id)
 

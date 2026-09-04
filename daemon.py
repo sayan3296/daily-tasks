@@ -1,54 +1,9 @@
-import json
-import os
-import sys
 import time
 import subprocess
 import threading
-import fcntl
-from contextlib import contextmanager
 from datetime import datetime, timedelta
 
-APP_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.expanduser("~/Daily-Tasks")
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
-DATA_FILE = os.path.join(DATA_DIR, "tasks.json")
-LOCK_FILE = os.path.join(DATA_DIR, ".tasks.lock")
-
-@contextmanager
-def task_lock():
-    # Exclusive flock on a dedicated lock file. A fresh open() per call gives
-    # mutual exclusion across processes (app vs daemon) and threads, so the
-    # app and daemon never write tasks.json at the same time.
-    fd = open(LOCK_FILE, 'w')
-    try:
-        fcntl.flock(fd, fcntl.LOCK_EX)
-        yield
-    finally:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        fd.close()
-
-def _atomic_write_json(path, data):
-    # Write to a temp file in the same directory, fsync, then os.replace.
-    # os.replace is atomic on POSIX, so a crash never leaves a truncated file.
-    tmp = f"{path}.tmp"
-    with open(tmp, 'w') as f:
-        json.dump(data, f)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
-
-def load_tasks():
-    if os.path.exists(DATA_FILE):
-        try:
-            with open(DATA_FILE, 'r') as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
-            print(f"Warning: could not read {DATA_FILE}: {e}", file=sys.stderr)
-    return {}
-
-def save_tasks(tasks):
-    _atomic_write_json(DATA_FILE, tasks)
+from storage import load_tasks, save_tasks, task_lock
 
 def send_notification_and_handle_snooze(task_id, title, message):
     # -w waits for the notification to be closed/clicked
