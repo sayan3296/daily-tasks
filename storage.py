@@ -125,6 +125,20 @@ def _ts(task):
     return task.get("updated_at") or ""
 
 
+def merge_tasks(local, remote):
+    # Union by UUID; per id keep the record with the newer updated_at (local wins
+    # exact ties). Tombstones compete by timestamp like any other record, so a
+    # newer delete propagates and a newer edit resurrects nothing incorrectly.
+    # Pure function (no I/O) -- callers persist the result via mutate/save_tasks.
+    # This is the primitive the Phase 2 Google Drive sync will call.
+    merged = dict(local)
+    for tid, r in remote.items():
+        l = merged.get(tid)
+        if l is None or _ts(r) > _ts(l):
+            merged[tid] = r
+    return merged
+
+
 def weekday(date_str):
     # Return the weekday name for a YYYY-MM-DD string, or "?" if unparseable.
     try:
