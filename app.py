@@ -4,6 +4,8 @@ import json
 import os
 import sys
 import uuid
+import fcntl
+from contextlib import contextmanager
 from datetime import datetime
 
 # --- PATH SETUP (Compatible with RPM system-wide install) ---
@@ -13,6 +15,20 @@ if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 DATA_FILE = os.path.join(DATA_DIR, "tasks.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json") # New config file for Dark Mode
+LOCK_FILE = os.path.join(DATA_DIR, ".tasks.lock")
+
+@contextmanager
+def task_lock():
+    # Exclusive flock on a dedicated lock file. A fresh open() per call gives
+    # mutual exclusion across processes (app vs daemon) and threads, so the
+    # app and daemon never write tasks.json at the same time.
+    fd = open(LOCK_FILE, 'w')
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        fd.close()
 
 def _atomic_write_json(path, data):
     # Write to a temp file in the same directory, fsync, then os.replace.
@@ -34,7 +50,8 @@ def load_tasks():
     return {}
 
 def save_tasks(tasks):
-    _atomic_write_json(DATA_FILE, tasks)
+    with task_lock():
+        _atomic_write_json(DATA_FILE, tasks)
 
 def load_config():
     if os.path.exists(CONFIG_FILE):
@@ -46,7 +63,8 @@ def load_config():
     return {"dark_mode": False} # Default
 
 def save_config(config):
-    _atomic_write_json(CONFIG_FILE, config)
+    with task_lock():
+        _atomic_write_json(CONFIG_FILE, config)
 
 class TaskApp:
     def __init__(self, root):
