@@ -333,7 +333,7 @@ class TaskApp:
         normal_tasks = []
         
         for t_id, t_info in self.tasks.items():
-            if not t_info.get('completed', False):
+            if not t_info.get('completed', False) and not t_info.get('deleted', False):
                 text = t_info.get('text', '')
                 date = t_info.get('date', '')
                 # Skip records without a usable due date instead of crashing.
@@ -375,13 +375,18 @@ class TaskApp:
         selected = self.tree.selection()
         if not selected: return
         task_id = selected[0]
-        del self.tasks[task_id]
+        # Tombstone instead of hard delete so the removal can sync to other devices.
+        self.tasks[task_id]['deleted'] = True
+        self.tasks[task_id]['updated_at'] = now_iso()
         save_tasks(self.tasks)
         self.refresh_list()
 
     def clear_done(self):
         if messagebox.askyesno("Confirm", "Permanently delete all completed tasks?"):
-            self.tasks = {t_id: info for t_id, info in self.tasks.items() if not info.get('completed', False)}
+            for info in self.tasks.values():
+                if info.get('completed', False) and not info.get('deleted', False):
+                    info['deleted'] = True
+                    info['updated_at'] = now_iso()
             save_tasks(self.tasks)
             self.refresh_list()
 

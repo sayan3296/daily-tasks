@@ -3,7 +3,7 @@ import os
 import sys
 import fcntl
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # --- PATH SETUP (Compatible with RPM system-wide install) ---
 # DAILY_TASKS_DIR lets tests (and future backends) redirect the data location.
@@ -13,6 +13,10 @@ if not os.path.exists(DATA_DIR):
 DATA_FILE = os.path.join(DATA_DIR, "tasks.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 LOCK_FILE = os.path.join(DATA_DIR, ".tasks.lock")
+
+# Deleted tasks are kept as tombstones this long so the deletion can propagate
+# to other devices before the record is dropped for good.
+TOMBSTONE_MAX_AGE_DAYS = 30
 
 
 @contextmanager
@@ -64,9 +68,16 @@ def load_tasks():
         return _read_json(DATA_FILE, {})
 
 
+def _purge_tombstones(tasks):
+    # Drop tombstoned tasks whose deletion is older than the retention window.
+    cutoff = (datetime.now() - timedelta(days=TOMBSTONE_MAX_AGE_DAYS)).isoformat()
+    return {tid: t for tid, t in tasks.items()
+            if not (t.get("deleted") and _ts(t) < cutoff)}
+
+
 def save_tasks(tasks):
     with task_lock():
-        _write_json(DATA_FILE, tasks)
+        _write_json(DATA_FILE, _purge_tombstones(tasks))
 
 
 def load_config():

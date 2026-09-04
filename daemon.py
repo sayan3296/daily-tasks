@@ -38,7 +38,9 @@ def run_daemon():
             updated = False
 
             for task_id, task in tasks.items():
-                # Skip malformed records instead of crashing the whole loop.
+                # Skip tombstoned or malformed records instead of crashing the loop.
+                if task.get('deleted'):
+                    continue
                 if not task.get('date'):
                     continue
                 if task['date'] == today_str and not task.get('completed', False) and task.get('reminders_sent', 0) < 3:
