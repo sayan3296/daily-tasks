@@ -4,7 +4,7 @@ import os
 import uuid
 from datetime import datetime
 
-from storage import load_tasks, save_tasks, load_config, save_config, weekday
+from storage import load_tasks, save_tasks, load_config, save_config, weekday, now_iso
 
 # APP_DIR locates bundled assets (the icon) next to this script.
 # All data persistence lives in storage.py.
@@ -230,12 +230,13 @@ class TaskApp:
         task_id = str(uuid.uuid4())
         self.tasks[task_id] = {
             "text": text,
-            "date": due_date,         
-            "created_date": created_date, 
+            "date": due_date,
+            "created_date": created_date,
             "completed": False,
             "reminders_sent": 0,
             "last_reminded": None,
-            "snoozed_until": None
+            "snoozed_until": None,
+            "updated_at": now_iso()
         }
         save_tasks(self.tasks)
         
@@ -299,6 +300,7 @@ class TaskApp:
                 
             new_date = f"{pop_y_var.get()}-{pop_m_var.get()}-{pop_d_var.get()}"
             self.tasks[task_id]['date'] = new_date
+            self.tasks[task_id]['updated_at'] = now_iso()
             save_tasks(self.tasks)
             self.refresh_list()
             edit_win.destroy() 
@@ -365,6 +367,7 @@ class TaskApp:
         if not selected: return
         task_id = selected[0]
         self.tasks[task_id]['completed'] = True
+        self.tasks[task_id]['updated_at'] = now_iso()
         save_tasks(self.tasks)
         self.refresh_list()
 

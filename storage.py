@@ -80,6 +80,17 @@ def save_config(config):
         _write_json(CONFIG_FILE, config)
 
 
+def now_iso():
+    # Timestamp used to stamp every task mutation (see _ts / merge_tasks).
+    return datetime.now().isoformat()
+
+
+def _ts(task):
+    # Comparable last-modified value; missing/blank sorts as oldest. ISO strings
+    # from now_iso() compare lexicographically in chronological order.
+    return task.get("updated_at") or ""
+
+
 def weekday(date_str):
     # Return the weekday name for a YYYY-MM-DD string, or "?" if unparseable.
     try:
