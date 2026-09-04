@@ -2,21 +2,24 @@
 
 # 1. Read the current version directly from the .spec file
 CURRENT_VERSION=$(grep '^Version:' daily-tasks.spec | awk '{print $2}')
+VERSION="${CURRENT_VERSION}"
 
-# 2. Split the version into Major and Minor (e.g., "1.0" becomes MAJOR="1", MINOR="0")
-MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+# 2. Only bump the minor version when explicitly requested with --bump.
+# A plain rebuild reuses the current version instead of inflating it.
+if [ "$1" = "--bump" ]; then
+    MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+    MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+    NEW_MINOR=$((MINOR + 1))
+    VERSION="${MAJOR}.${NEW_MINOR}"
 
-# 3. Increment the Minor version
-NEW_MINOR=$((MINOR + 1))
-VERSION="${MAJOR}.${NEW_MINOR}"
+    echo "⬆️  Bumping version from ${CURRENT_VERSION} to ${VERSION}..."
 
-echo "⬆️  Auto-bumping version from ${CURRENT_VERSION} to ${VERSION}..."
-
-# 4. Automatically update the .spec file with the new version using 'sed'
-# This also resets the Release number back to 1 for the new version
-sed -i "s/^Version:.*/Version:        ${VERSION}/" daily-tasks.spec
-sed -i "s/^Release:.*/Release:        1/" daily-tasks.spec
+    # Update the .spec file with the new version, resetting Release back to 1
+    sed -i "s/^Version:.*/Version:        ${VERSION}/" daily-tasks.spec
+    sed -i "s/^Release:.*/Release:        1/" daily-tasks.spec
+else
+    echo "ℹ️  Building version ${VERSION} (pass --bump to increment the minor version)."
+fi
 
 echo "🚀 Starting Daily-Tasks RPM Build Process for v${VERSION}..."
 

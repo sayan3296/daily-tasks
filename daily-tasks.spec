@@ -44,5 +44,9 @@ cp %{SOURCE2} %{buildroot}/etc/xdg/autostart/
 /etc/xdg/autostart/dailytasks-daemon.desktop
 
 %changelog
-* Fri Mar 13 2026 Your Name <connectwithsayan03@gmail.com> - 1.0-1
+* Fri Sep 04 2026 Sayan Das <connectwithsayan03@gmail.com> - 1.3-1
+- Atomic writes and file locking to prevent task data loss
+- Hardened daemon and UI against malformed task records
+
+* Fri Mar 13 2026 Sayan Das <connectwithsayan03@gmail.com> - 1.0-1
 - Initial RPM release
