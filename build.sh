@@ -29,7 +29,7 @@ rpmdev-setuptree
 # Package the source code into a tarball
 echo "📦 Packaging source files..."
 mkdir -p daily-tasks-${VERSION}
-cp app.py daemon.py storage.py icon.png daily-tasks-${VERSION}/
+cp app.py daemon.py storage.py sync.py icon.png daily-tasks-${VERSION}/
 tar -czf ~/rpmbuild/SOURCES/daily-tasks-${VERSION}.tar.gz daily-tasks-${VERSION}/
 rm -rf daily-tasks-${VERSION}
 

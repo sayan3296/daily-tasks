@@ -12,6 +12,7 @@ BuildArch:      noarch
 Requires:       python3
 Requires:       python3-tkinter
 Requires:       libnotify
+Requires:       rclone
 
 %description
 Daily-Tasks is a lightweight, Python-based task manager. It features a modern 
@@ -31,6 +32,7 @@ mkdir -p %{buildroot}/etc/xdg/autostart
 cp app.py %{buildroot}/opt/daily-tasks/
 cp daemon.py %{buildroot}/opt/daily-tasks/
 cp storage.py %{buildroot}/opt/daily-tasks/
+cp sync.py %{buildroot}/opt/daily-tasks/
 cp icon.png %{buildroot}/opt/daily-tasks/
 
 # Copy Desktop files
@@ -41,6 +43,7 @@ cp %{SOURCE2} %{buildroot}/etc/xdg/autostart/
 /opt/daily-tasks/app.py
 /opt/daily-tasks/daemon.py
 /opt/daily-tasks/storage.py
+/opt/daily-tasks/sync.py
 /opt/daily-tasks/icon.png
 /usr/share/applications/dailytasks.desktop
 /etc/xdg/autostart/dailytasks-daemon.desktop

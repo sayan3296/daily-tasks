@@ -4,6 +4,7 @@ import threading
 from datetime import datetime, timedelta
 
 from storage import mutate
+import sync
 
 def send_notification_and_handle_snooze(task_id, title, message):
     # -w waits for the notification to be closed/clicked
@@ -72,6 +73,9 @@ def _tick(tasks):
 
 def run_daemon():
     while True:
+        # Converge with Google Drive first (no-op if sync is off/unconfigured),
+        # then fire due reminders on the up-to-date task set.
+        sync.sync_now()
         # Locked read-modify-write each tick so we never clobber concurrent app edits.
         mutate(_tick)
         time.sleep(60)

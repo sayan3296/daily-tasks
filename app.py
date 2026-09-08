@@ -1,10 +1,13 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 import os
 import uuid
+import threading
+import queue
 from datetime import datetime
 
 from storage import load_tasks, load_config, save_config, weekday, now_iso, mutate
+import sync
 
 # APP_DIR locates bundled assets (the icon) next to this script.
 # All data persistence lives in storage.py.
@@ -129,6 +132,14 @@ class TaskApp:
         self.theme_btn = ttk.Button(ctrl_frame, text="🌙 Dark Mode", command=self.toggle_theme)
         self.theme_btn.grid(row=1, column=3, pady=(10, 0), padx=3, sticky="ew")
 
+        # --- NEW: GOOGLE DRIVE SYNC ---
+        ttk.Button(ctrl_frame, text="☁ Sync Now", command=self.sync_now).grid(
+            row=2, column=0, columnspan=2, pady=(10, 0), padx=3, sticky="ew")
+        ttk.Button(ctrl_frame, text="⚙ Configure Sync", command=self.configure_sync).grid(
+            row=2, column=2, columnspan=2, pady=(10, 0), padx=3, sticky="ew")
+        self._sync_after_id = None
+        self._sync_queue = queue.Queue()  # worker threads post sync results here
+
         # --- NEW: STATUS BAR (For Copy Notifications) ---
         self.status_var = tk.StringVar()
         self.status_label = ttk.Label(self.main_frame, textvariable=self.status_var, font=("Sans", 9, "italic"), foreground="gray")
@@ -144,6 +155,70 @@ class TaskApp:
         self.apply_theme() # Applies light/dark mode based on saved config
         self.refresh_list()
         self.update_weekday()
+
+        # Pull from Drive on launch (background; no-op if sync is off).
+        self._sync_async()
+
+    # --- NEW: GOOGLE DRIVE SYNC ---
+    def _sync_async(self):
+        # Run a full sync on a worker thread (network must not block the UI). The
+        # worker touches NO Tk objects; it posts its result to a queue that the main
+        # thread drains via _poll_sync. Must be called from the main thread.
+        threading.Thread(
+            target=lambda: self._sync_queue.put(sync.sync_now()), daemon=True).start()
+        self.root.after(100, self._poll_sync)
+
+    def _poll_sync(self):
+        # Main-thread poller: drain any finished sync results and update the UI.
+        try:
+            status = self._sync_queue.get_nowait()
+        except queue.Empty:
+            self.root.after(150, self._poll_sync)
+            return
+        self._after_sync(status)
+
+    def _after_sync(self, status):
+        if status == "synced":
+            self.tasks = load_tasks()
+            self.refresh_list()
+            self._flash_status("☁ Synced")
+        elif status == "error":
+            self._flash_status("☁ Sync error (see terminal)")
+        # "disabled" -> stay quiet
+
+    def _flash_status(self, msg):
+        self.status_var.set(msg)
+        self.root.after(3000, lambda: self.status_var.set(""))
+
+    def _schedule_sync(self):
+        # Debounce: coalesce rapid edits into one sync ~2s after the last change.
+        if not sync.is_configured():
+            return
+        if self._sync_after_id is not None:
+            self.root.after_cancel(self._sync_after_id)
+        self._sync_after_id = self.root.after(2000, self._sync_async)
+
+    def sync_now(self):
+        self.status_var.set("☁ Syncing…")
+        self._sync_async()
+
+    def configure_sync(self):
+        settings = sync.load_settings()
+        remote = simpledialog.askstring(
+            "Configure Sync",
+            "rclone remote name for Google Drive (run 'rclone config' first):",
+            initialvalue=settings.get("remote", ""), parent=self.root)
+        if remote is None:
+            return  # cancelled
+        remote = remote.strip()
+        settings["remote"] = remote
+        settings["enabled"] = bool(remote)
+        sync.save_settings(settings)
+        if settings["enabled"]:
+            self._flash_status(f"☁ Sync enabled (remote '{remote}')")
+            self._sync_async()
+        else:
+            self._flash_status("☁ Sync disabled")
 
     # --- NEW: THEME ENGINE ---
     def toggle_theme(self):
@@ -248,10 +323,11 @@ class TaskApp:
         self.day_var.set(datetime.now().strftime("%d"))
         
         # Clear search box when adding a new task so you can see it appear
-        self.search_var.set("") 
+        self.search_var.set("")
         self.refresh_list()
-        self.update_weekday() 
+        self.update_weekday()
         self.task_entry.focus_set()
+        self._schedule_sync()
 
     def edit_due_date(self, event=None):
         selected = self.tree.selection()
@@ -307,6 +383,7 @@ class TaskApp:
                     tasks[task_id]['updated_at'] = now_iso()
             self.tasks = mutate(_edit)
             self.refresh_list()
+            self._schedule_sync()
             edit_win.destroy()
 
         ttk.Button(edit_win, text="Save New Date", command=save_new_date).pack(pady=20)
@@ -376,6 +453,7 @@ class TaskApp:
                 tasks[task_id]['updated_at'] = now_iso()
         self.tasks = mutate(_complete)
         self.refresh_list()
+        self._schedule_sync()
 
     def delete_task(self):
         selected = self.tree.selection()
@@ -388,6 +466,7 @@ class TaskApp:
                 tasks[task_id]['updated_at'] = now_iso()
         self.tasks = mutate(_delete)
         self.refresh_list()
+        self._schedule_sync()
 
     def clear_done(self):
         if messagebox.askyesno("Confirm", "Permanently delete all completed tasks?"):
@@ -398,6 +477,7 @@ class TaskApp:
                         info['updated_at'] = now_iso()
             self.tasks = mutate(_clear)
             self.refresh_list()
+            self._schedule_sync()
 
     def reorder_tasks(self, index1, index2):
         # Disable reordering if search is active to prevent weird data scrambling
@@ -421,6 +501,7 @@ class TaskApp:
 
         self.tasks = mutate(_reorder)
         self.refresh_list()
+        self._schedule_sync()
 
         self.tree.selection_set(self.task_ids[index2])
         self.tree.focus(self.task_ids[index2])

@@ -17,6 +17,7 @@ Daily-Tasks goes beyond a simple to-do list by offering a persistent background 
 * **Frictionless Editing:** Double-click any task to quickly open a custom pop-up window and adjust its due date.
 * **Foolproof Date Entry:** Native, dynamic dropdown menus prevent formatting errors and automatically calculate the day of the week (e.g., "Monday").
 * **Safe Storage:** All data is stored locally in a simple `~/Daily-Tasks/` directory, using crash-safe atomic writes with automatic `.bak` recovery and concurrency-safe access shared between the app and the reminder daemon.
+* **☁ Google Drive Sync (optional):** Keep your tasks in sync across every machine logged into the same Google account. Syncs on launch, after each edit, on a timer, and on demand — with per-task merging so concurrent edits on different devices never lose data.
 
 ---
 
@@ -42,6 +43,33 @@ sudo dnf install ./daily-tasks-1.*.noarch.rpm
 * **Search:** Use the search bar to instantly filter tasks by text or date.
 * **Theme:** Click the Dark Mode / Light Mode button at the bottom right to switch themes.
 * **Background Reminders:** The app installs a daemon that will automatically start every time you log in. You don't need to keep the main window open to receive notifications!
+
+---
+
+## ☁ Cloud Sync (Google Drive)
+
+Sync is **optional and off by default**. It uses [`rclone`](https://rclone.org/) as the transport, so Google authentication is handled once by rclone — the app never sees your password and stores no OAuth secrets.
+
+### One-time setup (per machine)
+1. Install rclone (bundled as a dependency of the RPM, or `sudo dnf install rclone`).
+2. Create a Google Drive remote:
+
+```bash
+rclone config
+```
+
+Choose `n` (new remote), name it (e.g. `gdrive`), pick **Google Drive** as the storage type, and complete the browser sign-in. rclone saves the token in `~/.config/rclone/rclone.conf` (mode `0600`) — **outside** `~/Daily-Tasks`, so it is never itself synced.
+
+3. In Daily-Tasks, click **⚙ Configure Sync** and enter the remote name you chose (e.g. `gdrive`).
+
+### How it works
+- Tasks are stored on Drive at `Daily-Tasks/tasks.json` in your account.
+- The app syncs on launch, ~2 seconds after each edit (debounced), and whenever you click **☁ Sync Now**. The background daemon also syncs on its regular tick, so machines stay converged even with the window closed.
+- Sync is **merge-based, not overwrite-based**: each task has a last-modified timestamp, deletions are recorded as tombstones, and every sync merges the two sides per task (newest wins). Concurrent edits on different devices converge without losing data, and a device that was offline catches up on its next sync.
+- Only `tasks.json` is synced; your theme preference stays local to each machine.
+
+### Disabling
+Click **⚙ Configure Sync** and clear the remote name, or set `"enabled": false` in `~/Daily-Tasks/sync.json`.
 
 ---
 
@@ -96,9 +124,11 @@ The pipeline reads the version straight from the committed `daily-tasks.spec` �
 * `app.py`: The main GUI application.
 * `daemon.py`: The background notification tracker.
 * `storage.py`: Shared data layer (atomic writes, file locking, `.bak` recovery, tombstones, merge) used by both `app.py` and `daemon.py`.
-* `test_storage.py`: Unit tests for the storage layer (development only; not shipped in the RPM).
+* `sync.py`: Optional Google Drive sync via rclone (pull → merge → push).
+* `test_storage.py` / `test_sync.py`: Unit tests (development only; not shipped in the RPM).
 * `icon.png`: The application icon.
 * `tasks.json` & `config.json`: Local storage for user data and theme preferences (generated at runtime).
+* `sync.json`: Non-secret cloud-sync settings — rclone remote name and remote path (generated at runtime; no credentials).
 * `dailytasks.desktop`: System-wide application menu shortcut.
 * `dailytasks-daemon.desktop`: System-wide autostart configuration.
 * `daily-tasks.spec`: The RPM build recipe.

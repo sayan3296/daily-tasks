@@ -139,6 +139,17 @@ def merge_tasks(local, remote):
     return merged
 
 
+def merge_into_local(remote):
+    # Merge a remote task dict into the on-disk local tasks under the file lock,
+    # purge old tombstones, persist, and return the merged result. Used by the
+    # sync layer; keeps all locking/merge logic here in storage.
+    with task_lock():
+        local = _read_json(DATA_FILE, {})
+        merged = _purge_tombstones(merge_tasks(local, remote))
+        _write_json(DATA_FILE, merged)
+        return merged
+
+
 def weekday(date_str):
     # Return the weekday name for a YYYY-MM-DD string, or "?" if unparseable.
     try:
