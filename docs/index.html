@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily-Tasks — a native task manager & reminder daemon for Fedora</title>
+<meta name="description" content="Daily-Tasks: a lightweight native desktop task manager for Fedora Linux, with system notifications, dark mode, live search, and optional Google Drive sync.">
+<style>
+  :root {
+    --bg: #1e1e1e; --panel: #2d2d2d; --fg: #f0f0f0; --muted: #aaaaaa;
+    --accent: #4fc3f7; --accent2: #005f87; --border: #3c3c3c; --code: #111318;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, "Segoe UI", "Cantarell", sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+  }
+  a { color: var(--accent); }
+  header {
+    text-align: center; padding: 4rem 1.5rem 3rem;
+    background: radial-gradient(120% 120% at 50% 0%, #26333b 0%, var(--bg) 70%);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 2.6rem; margin: 0 0 .5rem; }
+  header p.tagline { font-size: 1.2rem; color: var(--muted); max-width: 40rem; margin: 0 auto 1.75rem; }
+  .btns { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: .7rem 1.4rem; border-radius: 8px;
+    text-decoration: none; font-weight: 600; border: 1px solid var(--border);
+  }
+  .btn.primary { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+  .btn.secondary { background: var(--panel); color: var(--fg); }
+  main { max-width: 52rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  section { margin-bottom: 2.75rem; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+  ul.features { list-style: none; padding: 0; display: grid; gap: .9rem; }
+  ul.features li { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: .9rem 1.1rem; }
+  ul.features li b { color: var(--accent); }
+  pre {
+    background: var(--code); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.15rem; overflow-x: auto; font-size: .95rem;
+  }
+  code { font-family: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace; }
+  ol { padding-left: 1.3rem; }
+  footer { text-align: center; color: var(--muted); padding: 2rem 1.5rem 3rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<header>
+  <h1>📋 Daily-Tasks</h1>
+  <p class="tagline">A modern, lightweight, native desktop task manager for Fedora Linux — with a background reminder daemon, dark mode, live search, and optional Google Drive sync.</p>
+  <div class="btns">
+    <a class="btn primary" href="https://github.com/sayan3296/daily-tasks/releases/latest">⬇ Download RPM</a>
+    <a class="btn secondary" href="https://github.com/sayan3296/daily-tasks">View on GitHub</a>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>✨ Features</h2>
+    <ul class="features">
+      <li><b>Native desktop experience</b> — clean Tkinter UI with a modern <code>clam</code> theme that blends into Fedora/GNOME.</li>
+      <li><b>🌙 Dark mode</b> — toggle light/dark; your choice is remembered.</li>
+      <li><b>🔍 Live search</b> — filter tasks by description or date as you type.</li>
+      <li><b>Smart sorting &amp; color-coding</b> — overdue in bold red, due-today in blue, upcoming below.</li>
+      <li><b>Persistent reminder daemon</b> — auto-starts at login and sends native desktop notifications for due tasks.</li>
+      <li><b>Safe storage</b> — crash-safe atomic writes with automatic <code>.bak</code> recovery and concurrency-safe access shared by the app and daemon.</li>
+      <li><b>☁ Optional Google Drive sync</b> — keep tasks in sync across every machine on the same account, with per-task merging so concurrent edits never lose data.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>🚀 Install</h2>
+    <p>No compiling required. Download the latest <code>.rpm</code> from the
+      <a href="https://github.com/sayan3296/daily-tasks/releases/latest">Releases page</a>, then install with <code>dnf</code> (dependencies are pulled in automatically):</p>
+    <pre><code>sudo dnf install ./daily-tasks-*.noarch.rpm</code></pre>
+    <p>Launch it from your application menu by searching for <b>Daily-Tasks</b>. The reminder daemon starts automatically at login.</p>
+  </section>
+
+  <section>
+    <h2>☁ Cloud Sync (optional)</h2>
+    <p>Sync is off by default and uses <a href="https://rclone.org/">rclone</a> as the transport, so Google authentication is handled once by rclone — the app never sees your password and stores no OAuth secrets. After a one-time <code>rclone config</code>, enable sync in the app via <b>⚙ Configure Sync</b>. Every sync merges the two sides per task (newest wins, deletions tracked as tombstones), so devices — even ones that were offline — converge without data loss.</p>
+  </section>
+
+  <section>
+    <h2>🔗 Links</h2>
+    <ul>
+      <li><a href="https://github.com/sayan3296/daily-tasks">Source code &amp; documentation</a></li>
+      <li><a href="https://github.com/sayan3296/daily-tasks/releases">All releases</a></li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  Daily-Tasks · MIT License · built for Fedora Linux
+</footer>
+</body>
+</html>
