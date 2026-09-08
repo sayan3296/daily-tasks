@@ -16,7 +16,7 @@ Daily-Tasks goes beyond a simple to-do list by offering a persistent background 
 * **Persistent Daemon Integration:** A lightweight background process auto-starts with your computer to monitor deadlines and send system-level desktop notifications.
 * **Frictionless Editing:** Double-click any task to quickly open a custom pop-up window and adjust its due date.
 * **Foolproof Date Entry:** Native, dynamic dropdown menus prevent formatting errors and automatically calculate the day of the week (e.g., "Monday").
-* **Safe Storage:** All data is safely stored locally in a simple `~/Daily-Tasks/` directory.
+* **Safe Storage:** All data is stored locally in a simple `~/Daily-Tasks/` directory, using crash-safe atomic writes with automatic `.bak` recovery and concurrency-safe access shared between the app and the reminder daemon.
 
 ---
 
@@ -57,21 +57,27 @@ sudo dnf install rpm-build rpmdevtools
 ```
 
 ### Local Build Workflow
-The repository includes a smart `build.sh` script that automatically reads the current version from the `.spec` file, increments it (e.g., `1.0` -> `1.1`), updates the `.spec` file, and compiles the new RPM.
+The repository includes a `build.sh` script that reads the current version from the `.spec` file and compiles the RPM. By default it builds the version already in the `.spec` (a plain rebuild does **not** change the version).
 
-1. Make your code changes in `app.py` or `daemon.py`.
-2. Run the automated build script:
+1. Make your code changes in `app.py`, `daemon.py`, or `storage.py`.
+2. Build the current version:
 
 ```bash
 ./build.sh
 ```
 
-3. Your new installer will be generated at `~/rpmbuild/RPMS/noarch/`.
+3. To release a new version, bump first. This increments the minor version (e.g., `1.3` -> `1.4`), resets the release number, and updates the `.spec`:
 
-### Cloud Build Workflow (GitHub Actions)
+```bash
+./build.sh --bump
+```
+
+4. Your new installer will be generated at `~/rpmbuild/RPMS/noarch/`.
+
+### Automated Builds (GitHub Actions)
 This repository is configured with a CI/CD pipeline using GitHub Actions. It spins up a pristine Fedora container to compile the RPM and automatically publishes it to the GitHub Releases page.
 
-To trigger a cloud build and release, you **must** include the exact keyword `[build]` in your commit message:
+To trigger a build and release, you **must** include the exact keyword `[build]` in your commit message:
 
 ```bash
 git add .
@@ -81,12 +87,16 @@ git push
 
 If the commit message lacks `[build]`, GitHub Actions will safely ignore the push to save resources.
 
+The pipeline reads the version straight from the committed `daily-tasks.spec` — it does **not** bump it. To publish a *new* version, bump first (`./build.sh --bump`, or edit `Version:` in the `.spec` by hand), then commit and push with `[build]`. Pushing `[build]` without bumping re-releases the same version.
+
 ---
 
 ## 📂 File Structure
 
 * `app.py`: The main GUI application.
 * `daemon.py`: The background notification tracker.
+* `storage.py`: Shared data layer (atomic writes, file locking, `.bak` recovery, tombstones, merge) used by both `app.py` and `daemon.py`.
+* `test_storage.py`: Unit tests for the storage layer (development only; not shipped in the RPM).
 * `icon.png`: The application icon.
 * `tasks.json` & `config.json`: Local storage for user data and theme preferences (generated at runtime).
 * `dailytasks.desktop`: System-wide application menu shortcut.
