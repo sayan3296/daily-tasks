@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Daily-Tasks</title>
+<meta name="description" content="Privacy policy for Daily-Tasks: a local Fedora desktop task manager. No telemetry; optional Google Drive sync stays in your own account.">
+<style>
+  :root {
+    --bg: #1e1e1e; --panel: #2d2d2d; --fg: #f0f0f0; --muted: #aaaaaa;
+    --accent: #4fc3f7; --accent2: #005f87; --border: #3c3c3c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, "Segoe UI", "Cantarell", sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.65;
+  }
+  a { color: var(--accent); }
+  header {
+    text-align: center; padding: 3rem 1.5rem 2rem;
+    background: radial-gradient(120% 120% at 50% 0%, #26333b 0%, var(--bg) 70%);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 2rem; margin: 0 0 .35rem; }
+  header p { color: var(--muted); margin: 0; }
+  main { max-width: 48rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  section { margin-bottom: 2rem; }
+  h2 { font-size: 1.3rem; border-bottom: 1px solid var(--border); padding-bottom: .35rem; }
+  code { font-family: ui-monospace, "Cascadia Code", monospace; background: #111318; padding: .1rem .35rem; border-radius: 4px; }
+  ul { padding-left: 1.25rem; }
+  footer { text-align: center; color: var(--muted); padding: 2rem 1.5rem 3rem; border-top: 1px solid var(--border); }
+  .back { display: inline-block; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Privacy Policy</h1>
+  <p>Daily-Tasks · effective 9 September 2026</p>
+</header>
+
+<main>
+  <section>
+    <h2>Summary</h2>
+    <p>Daily-Tasks is a desktop application that runs entirely on your own computer. It contains no analytics, telemetry, ads, or trackers, and it sends none of your data to the developer. Your tasks stay on your device unless you choose to enable optional Google Drive sync.</p>
+  </section>
+
+  <section>
+    <h2>Data stored on your device</h2>
+    <p>The app keeps all of its data locally in the <code>~/Daily-Tasks/</code> directory:</p>
+    <ul>
+      <li><code>tasks.json</code> — your tasks (text, dates, completion/reminder state).</li>
+      <li><code>config.json</code> — app preferences such as your light/dark theme.</li>
+      <li><code>sync.json</code> — non-secret sync settings (the name of your rclone remote and the remote path). It contains no passwords or tokens.</li>
+    </ul>
+    <p>This information never leaves your computer except through the optional sync described below.</p>
+  </section>
+
+  <section>
+    <h2>Optional Google Drive sync</h2>
+    <p>Cloud sync is <strong>off by default</strong>. If you turn it on, it works like this:</p>
+    <ul>
+      <li>Sync uses <a href="https://rclone.org/">rclone</a> as the transport. Your Google sign-in is handled entirely by rclone during a one-time <code>rclone config</code>. <strong>The app never sees, receives, or stores your Google password.</strong></li>
+      <li>Your rclone authorization token is stored by rclone in <code>~/.config/rclone/rclone.conf</code> on your own machine — outside the app's data directory, and it is never itself uploaded.</li>
+      <li>When enabled, only <code>tasks.json</code> is copied to a folder in <strong>your own Google Drive account</strong> (default <code>Daily-Tasks/tasks.json</code>). Your theme and other settings are not synced.</li>
+      <li>The developer has no access to your Google account or your synced data. Data you store in Google Drive is subject to <a href="https://policies.google.com/privacy">Google's Privacy Policy</a>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>This website</h2>
+    <p>This site is a static page hosted on GitHub Pages. It sets no cookies and runs no analytics or third-party trackers. As with any website, the hosting provider (GitHub) may process standard technical information such as your IP address in order to serve the page; see the <a href="https://docs.github.com/site-policy/privacy-policies/github-privacy-statement">GitHub Privacy Statement</a>.</p>
+  </section>
+
+  <section>
+    <h2>Children's privacy</h2>
+    <p>Daily-Tasks is a general-purpose productivity tool and is not directed at children. It collects no personal information.</p>
+  </section>
+
+  <section>
+    <h2>Changes to this policy</h2>
+    <p>Any updates will be published on this page with a new effective date.</p>
+  </section>
+
+  <section>
+    <h2>Contact</h2>
+    <p>Questions about privacy can be raised via the project's <a href="https://github.com/sayan3296/daily-tasks/issues">GitHub issues</a>.</p>
+    <a class="back" href="index.html">← Back to Daily-Tasks</a>
+  </section>
+</main>
+
+<footer>
+  Daily-Tasks · MIT License · built for Fedora Linux
+</footer>
+</body>
+</html>
