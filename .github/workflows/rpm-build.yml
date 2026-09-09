@@ -28,7 +28,7 @@ jobs:
         run: |
           docker run --rm -v ${{ github.workspace }}:${{ github.workspace }} -w ${{ github.workspace }} fedora:latest /bin/bash -c "
             echo 'Installing build tools...'
-            dnf install -y rpm-build rpmdevtools tar
+            dnf install -y rpm-build rpmdevtools tar systemd-rpm-macros
             
             echo 'Setting up RPM tree...'
             rpmdev-setuptree
