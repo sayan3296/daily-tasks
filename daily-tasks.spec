@@ -6,13 +6,16 @@ Summary:        A modern desktop task manager and reminder daemon
 License:        MIT
 Source0:        %{name}-%{version}.tar.gz
 Source1:        dailytasks.desktop
-Source2:        dailytasks-daemon.desktop
+Source2:        daily-tasks-daemon.service
 
 BuildArch:      noarch
 Requires:       python3
 Requires:       python3-tkinter
 Requires:       libnotify
 Requires:       rclone
+
+BuildRequires:  systemd-rpm-macros
+%{?systemd_requires}
 
 %description
 Daily-Tasks is a lightweight, Python-based task manager. It features a modern 
@@ -26,7 +29,7 @@ to remind you of due tasks automatically.
 # Create target directories
 mkdir -p %{buildroot}/opt/daily-tasks
 mkdir -p %{buildroot}/usr/share/applications
-mkdir -p %{buildroot}/etc/xdg/autostart
+mkdir -p %{buildroot}%{_userunitdir}
 
 # Copy Python scripts and Icon
 cp app.py %{buildroot}/opt/daily-tasks/
@@ -35,9 +38,9 @@ cp storage.py %{buildroot}/opt/daily-tasks/
 cp sync.py %{buildroot}/opt/daily-tasks/
 cp icon.png %{buildroot}/opt/daily-tasks/
 
-# Copy Desktop files
+# App menu launcher and the systemd user service for the daemon
 cp %{SOURCE1} %{buildroot}/usr/share/applications/
-cp %{SOURCE2} %{buildroot}/etc/xdg/autostart/
+cp %{SOURCE2} %{buildroot}%{_userunitdir}/
 
 %files
 /opt/daily-tasks/app.py
@@ -46,7 +49,21 @@ cp %{SOURCE2} %{buildroot}/etc/xdg/autostart/
 /opt/daily-tasks/sync.py
 /opt/daily-tasks/icon.png
 /usr/share/applications/dailytasks.desktop
-/etc/xdg/autostart/dailytasks-daemon.desktop
+%{_userunitdir}/daily-tasks-daemon.service
+
+%post
+%systemd_user_post daily-tasks-daemon.service
+
+%preun
+%systemd_user_preun daily-tasks-daemon.service
+# On full removal (not upgrade), stop any running app/daemon processes.
+if [ $1 -eq 0 ]; then
+    pkill -f '/opt/daily-tasks/app.py' 2>/dev/null || :
+    pkill -f '/opt/daily-tasks/daemon.py' 2>/dev/null || :
+fi
+
+%postun
+%systemd_user_postun_with_restart daily-tasks-daemon.service
 
 %changelog
 * Thu Sep 10 2026 Sayan Das <connectwithsayan03@gmail.com> - 1.5-1

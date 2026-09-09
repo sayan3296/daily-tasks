@@ -34,7 +34,7 @@ tar -czf ~/rpmbuild/SOURCES/daily-tasks-${VERSION}.tar.gz daily-tasks-${VERSION}
 rm -rf daily-tasks-${VERSION}
 
 # Copy the desktop shortcuts and spec file to the build environment
-cp dailytasks.desktop dailytasks-daemon.desktop ~/rpmbuild/SOURCES/
+cp dailytasks.desktop daily-tasks-daemon.service ~/rpmbuild/SOURCES/
 cp daily-tasks.spec ~/rpmbuild/SPECS/
 
 # Build the RPM!

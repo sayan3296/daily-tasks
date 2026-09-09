@@ -13,7 +13,7 @@ Daily-Tasks goes beyond a simple to-do list by offering a persistent background 
 * **🔍 Live Search Filtering:** Instantly filter your task list by description or date as you type.
 * **📋 Quick Copy:** Right-click any task in your list to instantly copy it to your system clipboard.
 * **Smart Sorting & Color-Coding:** Overdue tasks are automatically swept to the top in **Bold Red**, tasks due today are highlighted in **Bold Blue**, and upcoming tasks remain neatly ordered below. Colors dynamically adjust to be easy on the eyes in Dark Mode.
-* **Persistent Daemon Integration:** A lightweight background process auto-starts with your computer to monitor deadlines and send system-level desktop notifications.
+* **Persistent Daemon Integration:** A lightweight background process runs as a **systemd user service**, starting at login to monitor deadlines and send system-level desktop notifications (auto-restarts on failure and on package upgrades).
 * **Frictionless Editing:** Double-click any task to quickly open a custom pop-up window and adjust its due date.
 * **Foolproof Date Entry:** Native, dynamic dropdown menus prevent formatting errors and automatically calculate the day of the week (e.g., "Monday").
 * **Safe Storage:** All data is stored locally in a simple `~/Daily-Tasks/` directory, using crash-safe atomic writes with automatic `.bak` recovery and concurrency-safe access shared between the app and the reminder daemon.
@@ -42,7 +42,22 @@ sudo dnf install ./daily-tasks-1.*.noarch.rpm
 * **Copy a Task:** Right-click a task to copy its text to your clipboard.
 * **Search:** Use the search bar to instantly filter tasks by text or date.
 * **Theme:** Click the Dark Mode / Light Mode button at the bottom right to switch themes.
-* **Background Reminders:** The app installs a daemon that will automatically start every time you log in. You don't need to keep the main window open to receive notifications!
+* **Background Reminders:** The reminder daemon is installed as a systemd **user** service and starts automatically at every login — you don't need to keep the main window open to receive notifications. After the very first install, either log out and back in, or start it immediately with:
+
+```bash
+systemctl --user daemon-reload && systemctl --user enable --now daily-tasks-daemon
+```
+
+Check it any time with `systemctl --user status daily-tasks-daemon` or view logs with `journalctl --user -u daily-tasks-daemon`. Package upgrades restart it automatically.
+
+> **One-time note when upgrading from an older (pre-systemd) version:** installing this version removes the old `/etc/xdg/autostart/dailytasks-daemon.desktop` and enables the systemd service, but a daemon already started by this login's autostart keeps running until you log out and back in. A built-in single-instance lock guarantees the two never run at once (the second exits cleanly). To complete the switch without re-logging in:
+>
+> ```bash
+> pkill -f /opt/daily-tasks/daemon.py
+> systemctl --user enable --now daily-tasks-daemon
+> ```
+>
+> This is only needed once. Every upgrade after that restarts the daemon automatically.
 
 ---
 
@@ -130,7 +145,7 @@ The pipeline reads the version straight from the committed `daily-tasks.spec` �
 * `tasks.json` & `config.json`: Local storage for user data and theme preferences (generated at runtime).
 * `sync.json`: Non-secret cloud-sync settings — rclone remote name and remote path (generated at runtime; no credentials).
 * `dailytasks.desktop`: System-wide application menu shortcut.
-* `dailytasks-daemon.desktop`: System-wide autostart configuration.
+* `daily-tasks-daemon.service`: systemd user service that runs the reminder daemon.
 * `daily-tasks.spec`: The RPM build recipe.
 * `build.sh`: Local auto-incrementing build script.
 * `.github/workflows/rpm-build.yml`: The GitHub Actions CI/CD pipeline.

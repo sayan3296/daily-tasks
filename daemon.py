@@ -1,10 +1,29 @@
+import os
+import sys
 import time
+import fcntl
 import subprocess
 import threading
 from datetime import datetime, timedelta
 
+import storage
 from storage import mutate
 import sync
+
+# Held for the process lifetime so the flock is not released (module global).
+_singleton_fd = None
+
+
+def acquire_singleton():
+    # Ensure only one daemon runs (systemd already guarantees this for the managed
+    # service, but this also covers manual launches and the autostart transition).
+    global _singleton_fd
+    _singleton_fd = open(os.path.join(storage.DATA_DIR, ".daemon.lock"), "w")
+    try:
+        fcntl.flock(_singleton_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        print("daemon: another instance is already running; exiting", file=sys.stderr)
+        sys.exit(0)
 
 def send_notification_and_handle_snooze(task_id, title, message):
     # -w waits for the notification to be closed/clicked
@@ -81,4 +100,5 @@ def run_daemon():
         time.sleep(60)
 
 if __name__ == "__main__":
+    acquire_singleton()
     run_daemon()

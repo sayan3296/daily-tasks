@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily-Tasks reminder daemon
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/daily-tasks/daemon.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
