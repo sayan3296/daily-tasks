@@ -1,5 +1,5 @@
 Name:           daily-tasks
-Version:        1.4
+Version:        1.5
 Release:        1
 Summary:        A modern desktop task manager and reminder daemon
 
@@ -49,6 +49,12 @@ cp %{SOURCE2} %{buildroot}/etc/xdg/autostart/
 /etc/xdg/autostart/dailytasks-daemon.desktop
 
 %changelog
+* Thu Sep 10 2026 Sayan Das <connectwithsayan03@gmail.com> - 1.5-1
+- Fix: tolerate and de-duplicate remote tasks.json (Google Drive duplicate files)
+
+* Tue Sep 08 2026 Sayan Das <connectwithsayan03@gmail.com> - 1.4-1
+- Optional Google Drive sync via rclone (record-level merge, tombstones)
+
 * Fri Sep 04 2026 Sayan Das <connectwithsayan03@gmail.com> - 1.3-1
 - Atomic writes and file locking to prevent task data loss
 - Hardened daemon and UI against malformed task records
