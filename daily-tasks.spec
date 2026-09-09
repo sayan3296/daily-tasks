@@ -1,5 +1,5 @@
 Name:           daily-tasks
-Version:        1.5
+Version:        1.6
 Release:        1
 Summary:        A modern desktop task manager and reminder daemon
 
@@ -66,6 +66,10 @@ fi
 %systemd_user_postun_with_restart daily-tasks-daemon.service
 
 %changelog
+* Thu Sep 10 2026 Sayan Das <connectwithsayan03@gmail.com> - 1.6-1
+- Run the reminder daemon as a systemd user service (supervised, restarts on upgrade)
+- Single-instance guard prevents duplicate daemons
+
 * Thu Sep 10 2026 Sayan Das <connectwithsayan03@gmail.com> - 1.5-1
 - Fix: tolerate and de-duplicate remote tasks.json (Google Drive duplicate files)
 
