@@ -1,4 +1,5 @@
 import os
+import json
 import stat
 import tempfile
 import unittest
@@ -106,6 +107,14 @@ class SyncTest(unittest.TestCase):
         self.assertIn("local_only", storage.load_tasks())
         with open(self.cloud) as f:
             self.assertEqual(f.read(), cloud_before)
+
+    def test_parse_concatenated_duplicates(self):
+        # rclone cat of two same-named Drive files -> two JSON objects back-to-back.
+        a = json.dumps({"x": self._task("A", "2024-01-01T00:00:00")})
+        b = json.dumps({"y": self._task("B", "2024-02-01T00:00:00")})
+        merged, count = sync._parse_remote(a + b)
+        self.assertEqual(count, 2)
+        self.assertEqual(set(merged), {"x", "y"})
 
     def test_disabled_when_not_configured(self):
         _use_device(self.devA)

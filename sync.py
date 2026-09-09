@@ -38,11 +38,31 @@ def _remote_spec(s):
     return f"{s['remote']}:{s['remote_path']}"
 
 
+def _parse_remote(text):
+    # Google Drive permits duplicate filenames, so `rclone cat` can stream several
+    # JSON objects concatenated (one per duplicate file). Parse each and union-merge
+    # them so no task is lost. Returns (tasks, object_count).
+    dec = json.JSONDecoder()
+    idx, n = 0, len(text)
+    merged, count = {}, 0
+    while idx < n:
+        while idx < n and text[idx].isspace():
+            idx += 1
+        if idx >= n:
+            break
+        obj, idx = dec.raw_decode(text, idx)
+        if isinstance(obj, dict):
+            merged = obj if count == 0 else storage.merge_tasks(merged, obj)
+            count += 1
+    return merged, count
+
+
 def _download(s):
-    # Returns (ok, tasks). ok=False means the remote could not be read reliably
-    # (network/parse error) -- the caller must NOT push, to avoid clobbering the
-    # remote with a blind local copy. ok=True with {} means the remote file is
-    # genuinely absent/empty (first run), which is safe to proceed from.
+    # Returns (ok, tasks, dupes). ok=False means the remote could not be read
+    # reliably (network/parse error) -- the caller must NOT push, to avoid
+    # clobbering the remote with a blind local copy. ok=True with {} means the
+    # remote file is genuinely absent/empty (first run). dupes>1 means the remote
+    # had duplicate files (their contents are already merged into tasks).
     try:
         result = subprocess.run(
             ["rclone", "cat", _remote_spec(s)],
@@ -50,27 +70,37 @@ def _download(s):
         )
     except (OSError, subprocess.SubprocessError) as e:
         print(f"sync: rclone cat failed: {e}", file=sys.stderr)
-        return False, {}
+        return False, {}, 0
 
     if result.returncode != 0:
         stderr = (result.stderr or "").lower()
         if any(h in stderr for h in _NOT_FOUND_HINTS):
-            return True, {}  # first run: remote does not exist yet
+            return True, {}, 0  # first run: remote does not exist yet
         print(f"sync: rclone cat error: {result.stderr.strip()}", file=sys.stderr)
-        return False, {}
+        return False, {}, 0
 
     out = result.stdout.strip()
     if not out:
-        return True, {}
+        return True, {}, 0
     try:
-        data = json.loads(out)
-    except json.JSONDecodeError as e:
+        data, count = _parse_remote(out)
+    except (json.JSONDecodeError, ValueError) as e:
         print(f"sync: remote tasks.json is not valid JSON: {e}", file=sys.stderr)
-        return False, {}
-    if not isinstance(data, dict):
-        print("sync: remote tasks.json is not an object", file=sys.stderr)
-        return False, {}
-    return True, data
+        return False, {}, 0
+    if count > 1:
+        print(f"sync: remote had {count} duplicate tasks.json files; merged them", file=sys.stderr)
+    return True, data, count
+
+
+def _dedupe(s):
+    # Collapse duplicate Google Drive files (same name in a folder) into one.
+    # Best-effort: failures are logged, never fatal.
+    remote_dir = f"{s['remote']}:{os.path.dirname(s['remote_path'])}"
+    try:
+        subprocess.run(["rclone", "dedupe", "--dedupe-mode", "newest", remote_dir],
+                       capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"sync: rclone dedupe failed: {e}", file=sys.stderr)
 
 
 def _upload(s, tasks):
@@ -94,8 +124,10 @@ def sync_now():
     if not is_configured():
         return "disabled"
     s = load_settings()
-    ok, remote = _download(s)
+    ok, remote, dupes = _download(s)
     if not ok:
         return "error"  # do not push over a remote we could not read
     merged = storage.merge_into_local(remote)
+    if dupes > 1:
+        _dedupe(s)  # remote had duplicate files; collapse them (data already merged)
     return "synced" if _upload(s, merged) else "error"
